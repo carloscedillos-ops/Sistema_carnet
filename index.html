@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Carnetización - INCHIFAU</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- QRCode.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Cinzel:wght@700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+        }
+
+        /* Dimensiones exactas para la tarjeta ID CR80 vertical (Proporción 53.98mm x 85.6mm) */
+        .id-card {
+            width: 320px;
+            height: 506px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .card-header-font {
+            font-family: 'Cinzel', serif;
+        }
+
+        /* Themes CSS variables */
+        .theme-blue {
+            --primary: #1e3a8a;
+            --primary-dark: #1e293b;
+            --accent: #d97706;
+            --accent-bg: #fef3c7;
+            --bg-gradient: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+            --header-text: #ffffff;
+            --border-color: #3b82f6;
+        }
+
+        .theme-green {
+            --primary: #065f46;
+            --primary-dark: #064e3b;
+            --accent: #059669;
+            --accent-bg: #d1fae5;
+            --bg-gradient: linear-gradient(135deg, #065f46 0%, #047857 100%);
+            --header-text: #ffffff;
+            --border-color: #10b981;
+        }
+
+        .theme-red {
+            --primary: #881337;
+            --primary-dark: #4c0519;
+            --accent: #e11d48;
+            --accent-bg: #ffe4e6;
+            --bg-gradient: linear-gradient(135deg, #881337 0%, #be123c 100%);
+            --header-text: #ffffff;
+            --border-color: #f43f5e;
+        }
+
+        .theme-dark {
+            --primary: #0f172a;
+            --primary-dark: #020617;
+            --accent: #38bdf8;
+            --accent-bg: #e0f2fe;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            --header-text: #ffffff;
+            --border-color: #38bdf8;
+        }
+
+        /* Direct application of CSS variable styles */
+        .id-card-header {
+            background: var(--bg-gradient);
+            color: var(--header-text);
+        }
+
+        .border-accent {
+            border-color: var(--border-color);
+        }
+
+        .text-accent-theme {
+            color: var(--primary);
+        }
+
+        .badge-theme {
+            background-color: var(--accent-bg);
+            color: var(--primary-dark);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printableArea, #printableArea * {
+                visibility: visible;
+            }
+            #printableArea {
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%) scale(1.05);
+                margin: 0;
+                padding: 0;
+                box-shadow: none !important;
+                border: 1px solid #e2e8f0;
+            }
+            .no-print {
+                display: none !important;
+            }
+            @page {
+                size: portrait;
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col">
+
+    <!-- Encabezado Principal -->
+    <header class="bg-slate-900 text-white shadow-lg no-print">
+        <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="p-2.5 bg-blue-600 rounded-xl shadow-md">
+                    <i class="fa-solid fa-id-card text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">INCHIFAU</h1>
+                    <p class="text-xs text-slate-400">Sistema de Carnetización INCHIFAU</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-2 bg-slate-800 p-1.5 rounded-lg border border-slate-700">
+                <span class="text-xs font-medium text-slate-300 px-2">Plantilla:</span>
+                <button onclick="changeTheme('theme-blue')" class="w-6 h-6 rounded-full bg-blue-900 border-2 border-white hover:scale-110 transition-transform" title="Azul Institucional"></button>
+                <button onclick="changeTheme('theme-green')" class="w-6 h-6 rounded-full bg-emerald-800 border-2 border-white hover:scale-110 transition-transform" title="Verde Académico"></button>
+                <button onclick="changeTheme('theme-red')" class="w-6 h-6 rounded-full bg-rose-900 border-2 border-white hover:scale-110 transition-transform" title="Rojo Vino"></button>
+                <button onclick="changeTheme('theme-dark')" class="w-6 h-6 rounded-full bg-slate-900 border-2 border-white hover:scale-110 transition-transform" title="Oscuro Moderno"></button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Formulario e Inscripción (Izquierda / 7 Cols) -->
+        <section class="lg:col-span-7 space-y-6 no-print">
+            
+            <!-- Configuración Institucional (Colapsable) -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+                <button onclick="toggleAccordion('institutionConfig')" class="w-full flex justify-between items-center text-left">
+                    <div class="flex items-center space-x-2 text-slate-800 font-semibold">
+                        <i class="fa-solid fa-school text-blue-600"></i>
+                        <span>Datos de la Institución Educativa</span>
+                    </div>
+                    <i id="accordionIcon" class="fa-solid fa-chevron-down text-slate-400 transition-transform"></i>
+                </button>
+                
+                <div id="institutionConfig" class="hidden mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre de la Institución</label>
+                        <input type="text" id="instNameInput" value="INSTITUTO NACIONAL DE BACHILLERATO" 
+                            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            oninput="updateCardPreview()">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Año Lectivo</label>
+                        <input type="text" id="schoolYearInput" value="2026 - 2027" 
+                            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            oninput="updateCardPreview()">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Logo Institucional</label>
+                        <input type="file" id="instLogoInput" accept="image/*" 
+                            class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                            onchange="handleLogoUpload(event)">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulario del Estudiante -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <div class="flex items-center justify-between mb-5 pb-3 border-b border-slate-100">
+                    <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-user-graduate text-blue-600"></i>
+                        Información del Estudiante
+                    </h2>
+                    <span class="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-medium">Bachillerato</span>
+                </div>
+
+                <form id="studentForm" class="space-y-4" onsubmit="event.preventDefault(); saveStudent();">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        
+                        <!-- Nombre Completo -->
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre Completo <span class="text-red-500">*</span></label>
+                            <input type="text" id="studentName" placeholder="Ej: Carlos Alberto Mendoza Reyes" required
+                                class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
+                                oninput="updateCardPreview()">
+                        </div>
+
+                        <!-- NIE -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">NIE (Identificación) <span class="text-red-500">*</span></label>
+                            <input type="text" id="studentNIE" placeholder="Ej: 8492041" required
+                                class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
+                                oninput="updateCardPreview()">
+                        </div>
+
+                        <!-- Sección -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Sección <span class="text-red-500">*</span></label>
+                            <select id="studentSection" required onchange="updateCardPreview()"
+                                class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none bg-white">
+                                <option value="1° Año - A">1° Año - Sección A</option>
+                                <option value="1° Año - B">1° Año - Sección B</option>
+                                <option value="2° Año - A" selected>2° Año - Sección A</option>
+                                <option value="2° Año - B">2° Año - Sección B</option>
+                                <option value="3° Año - A">3° Año - Sección A</option>
+                                <option value="3° Año - B">3° Año - Sección B</option>
+                            </select>
+                        </div>
+
+                        <!-- Especialidad -->
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Especialidad / Opción <span class="text-red-500">*</span></label>
+                            <select id="studentSpecialty" required onchange="updateCardPreview()"
+                                class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none bg-white">
+                                <option value="General">General</option>
+                                <option value="Desarrollo de Software">Técnico Vocacional en Desarrollo de Software</option>
+                                <option value="Administrativo Contable">Técnico Vocacional Administrativo Contable</option>
+                                <option value="Atención APS / Salud">Técnico Vocacional en Atención APS / Salud</option>
+                                <option value="Diseño Gráfico">Técnico Vocacional en Diseño Gráfico</option>
+                                <option value="Electrotecnia">Técnico Vocacional en Electrotecnia</option>
+                            </select>
+                        </div>
+
+                        <!-- Edad -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Edad <span class="text-red-500">*</span></label>
+                            <input type="number" id="studentAge" min="12" max="25" value="16" required
+                                class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
+                                oninput="updateCardPreview()">
+                        </div>
+
+                        <!-- Género -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Género <span class="text-red-500">*</span></label>
+                            <select id="studentGender" required onchange="updateCardPreview()"
+                                class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none bg-white">
+                                <option value="Masculino">Masculino</option>
+                                <option value="Femenino">Femenino</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+
+                        <!-- Foto del Estudiante -->
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Fotografía del Estudiante</label>
+                            <div class="flex items-center space-x-3">
+                                <input type="file" id="studentPhotoInput" accept="image/*"
+                                    class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all"
+                                    onchange="handlePhotoUpload(event)">
+                                <button type="button" onclick="resetPhoto()" class="px-3 py-2 text-xs text-slate-500 hover:text-red-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors" title="Restablecer Foto">
+                                    <i class="fa-solid fa-rotate-left"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="pt-4 flex flex-wrap gap-3">
+                        <button type="submit" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-medium py-2.5 px-4 rounded-xl text-sm transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            Guardar Registro
+                        </button>
+                        <button type="button" onclick="resetForm()" class="px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-xl text-sm hover:bg-slate-100 transition-colors">
+                            Limpiar Formulario
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Registro / Lista de Estudiantes -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-users text-blue-600"></i>
+                        Estudiantes Registrados
+                    </h3>
+                    <span id="studentCountBadge" class="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded-full">0</span>
+                </div>
+
+                <div class="overflow-x-auto max-h-60 overflow-y-auto rounded-xl border border-slate-100">
+                    <table class="w-full text-xs text-left text-slate-600">
+                        <thead class="text-xs text-slate-700 uppercase bg-slate-50 border-b border-slate-100 sticky top-0">
+                            <tr>
+                                <th class="px-3 py-2.5">Estudiante</th>
+                                <th class="px-3 py-2.5">NIE</th>
+                                <th class="px-3 py-2.5">Sección</th>
+                                <th class="px-3 py-2.5 text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentTableBody">
+                            <!-- Inserción dinámica de filas -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Vista Previa del Carnet (Derecha / 5 Cols) -->
+        <section class="lg:col-span-5 flex flex-col items-center">
+            
+            <div class="sticky top-6 flex flex-col items-center w-full">
+                
+                <!-- Barra de Herramientas Vista Previa -->
+                <div class="w-full max-w-[320px] flex justify-between items-center mb-3 no-print">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Vista Previa
+                    </span>
+                    
+                    <button onclick="printCard()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs py-2 px-4 rounded-xl shadow-md transition-all flex items-center gap-2 hover:scale-105">
+                        <i class="fa-solid fa-print"></i>
+                        Imprimir / Guardar PDF
+                    </button>
+                </div>
+
+                <!-- CARNET CR80 (FORMATO VERTICAL) -->
+                <div id="printableArea" class="id-card theme-blue bg-white rounded-2xl overflow-hidden relative border border-slate-200 flex flex-col justify-between select-none">
+                    
+                    <!-- Encabezado del Carnet -->
+                    <div class="id-card-header p-3.5 text-center relative flex flex-col items-center justify-center min-h-[90px]">
+                        <!-- Pattern de fondo decorativo -->
+                        <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:8px_8px]"></div>
+                        
+                        <div class="relative z-10 flex items-center justify-center gap-2 mb-1 w-full px-2">
+                            <img id="cardLogoImg" src="https://placehold.co/100x100/1e3a8a/ffffff?text=LOGO" alt="Logo" class="w-8 h-8 rounded-full border border-white/50 object-cover bg-white shadow-sm flex-shrink-0">
+                            <h2 id="cardInstName" class="card-header-font text-[10px] font-bold uppercase leading-tight tracking-wide line-clamp-2">
+                                INSTITUTO NACIONAL DE CHINAMECA
+                            </h2>
+                        </div>
+                        
+                        <div class="relative z-10 bg-white/20 backdrop-blur-md px-3 py-0.5 rounded-full border border-white/30">
+                            <span class="text-[8px] font-extrabold tracking-widest uppercase text-white">CARNET ESTUDIANTIL</span>
+                        </div>
+                    </div>
+
+                    <!-- Cuerpo del Carnet -->
+                    <div class="px-4 py-2 flex-1 flex flex-col items-center justify-between">
+                        
+                        <!-- Contenedor Foto + Especialidad Badge -->
+                        <div class="flex flex-col items-center w-full">
+                            <div class="relative mt-1 mb-1.5">
+                                <div class="w-24 h-28 rounded-xl overflow-hidden border-2 border-accent shadow-md bg-slate-100 flex items-center justify-center">
+                                    <img id="cardStudentPhoto" src="https://placehold.co/150x180/e2e8f0/475569?text=FOTO" alt="Foto Estudiante" class="w-full h-full object-cover">
+                                </div>
+                                <div id="cardGenderBadge" class="absolute -bottom-1 -right-1 bg-white text-slate-700 text-[9px] w-5 h-5 rounded-full flex items-center justify-center border border-slate-200 shadow-sm" title="Género">
+                                    <i class="fa-solid fa-mars text-blue-600"></i>
+                                </div>
+                            </div>
+
+                            <!-- Especialidad Badge -->
+                            <div class="badge-theme px-2.5 py-0.5 rounded-md text-center max-w-full">
+                                <p id="cardSpecialty" class="text-[9px] font-bold truncate tracking-tight uppercase">
+                                    General
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Datos del Estudiante -->
+                        <div class="w-full space-y-1.5 my-1 text-center">
+                            <div>
+                                <h3 id="cardStudentName" class="text-xs font-extrabold text-slate-800 leading-tight line-clamp-2 px-1">
+                                    CARLOS ALBERTO MENDOZA REYES
+                                </h3>
+                            </div>
+
+                            <!-- Grid de Datos Cortos -->
+                            <div class="grid grid-cols-2 gap-1 bg-slate-50 p-1.5 rounded-lg border border-slate-100 text-left text-[9px]">
+                                <div>
+                                    <span class="text-slate-400 block text-[7px] uppercase font-bold">NIE:</span>
+                                    <span id="cardNIE" class="font-extrabold text-slate-800 tracking-wider">8492041</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[7px] uppercase font-bold">Sección:</span>
+                                    <span id="cardSection" class="font-bold text-slate-700">2° Año - A</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[7px] uppercase font-bold">Edad:</span>
+                                    <span id="cardAge" class="font-bold text-slate-700">16 Años</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[7px] uppercase font-bold">Año Lectivo:</span>
+                                    <span id="cardSchoolYear" class="font-bold text-slate-700">2026 - 2027</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sección QR y Firma -->
+                        <div class="w-full pt-1 border-t border-dashed border-slate-200 flex items-center justify-between gap-2">
+                            <!-- Código QR -->
+                            <div class="flex flex-col items-center">
+                                <div id="qrcode" class="p-1 bg-white rounded border border-slate-200 shadow-2xs flex items-center justify-center"></div>
+                                <span class="text-[6px] text-slate-400 font-mono mt-0.5">VERIFICABLE</span>
+                            </div>
+
+                            <!-- Espacio de Firma / Sello -->
+                            <div class="flex-1 flex flex-col items-center justify-end text-center">
+                                <div class="w-20 border-b border-slate-400 mb-0.5"></div>
+                                <span class="text-[7px] font-bold text-slate-600 uppercase">Firma Autorizada</span>
+                                <span class="text-[6px] text-slate-400">Dirección Académica</span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Pie de carnet / Borde inferior -->
+                    <div class="h-2 w-full bg-slate-900 id-card-header"></div>
+                </div>
+
+                <p class="text-xs text-slate-400 mt-4 text-center max-w-xs no-print">
+                    <i class="fa-solid fa-circle-info mr-1"></i>
+                    Para imprimir en tamaño tarjeta real (85.6mm x 54mm), configure la escala de impresión al 100%.
+                </p>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Script de Funcionalidad JavaScript -->
+    <script>
+        // Estado de la Aplicación
+        let currentTheme = 'theme-blue';
+        let customLogo = null;
+        let customPhoto = null;
+        let qrCodeInstance = null;
+        let studentsList = [];
+
+        // Inicialización al cargar el DOM
+        window.onload = function() {
+            initQRCode();
+            loadStoredStudents();
+            updateCardPreview();
+        };
+
+        // Cambiar acordeón de configuración
+        function toggleAccordion(id) {
+            const content = document.getElementById(id);
+            const icon = document.getElementById('accordionIcon');
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.classList.add('rotate-180');
+            } else {
+                content.classList.add('hidden');
+                icon.classList.remove('rotate-180');
+            }
+        }
+
+        // Inicializar código QR con la librería QRCodeJS
+        function initQRCode() {
+            const qrContainer = document.getElementById("qrcode");
+            qrContainer.innerHTML = ""; // Limpiar previo
+            
+            qrCodeInstance = new QRCode(qrContainer, {
+                text: "NIE: 8492041 | ESTUDIANTE: CARLOS ALBERTO MENDOZA REYES",
+                width: 44,
+                height: 44,
+                colorDark : "#0f172a",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.M
+            });
+        }
+
+        // Actualizar datos del Carnet en tiempo real
+        function updateCardPreview() {
+            // Lectura de valores del formulario
+            const name = document.getElementById('studentName').value.trim() || 'NOMBRE DEL ESTUDIANTE';
+            const nie = document.getElementById('studentNIE').value.trim() || '0000000';
+            const section = document.getElementById('studentSection').value;
+            const specialty = document.getElementById('studentSpecialty').value;
+            const age = document.getElementById('studentAge').value || '--';
+            const gender = document.getElementById('studentGender').value;
+            
+            const instName = document.getElementById('instNameInput').value.trim() || 'INSTITUTO NACIONAL DE BACHILLERATO';
+            const schoolYear = document.getElementById('schoolYearInput').value.trim() || '2026';
+
+            // Actualizar elementos HTML del Carnet
+            document.getElementById('cardStudentName').textContent = name.toUpperCase();
+            document.getElementById('cardNIE').textContent = nie;
+            document.getElementById('cardSection').textContent = section;
+            document.getElementById('cardSpecialty').textContent = specialty;
+            document.getElementById('cardAge').textContent = age + ' Años';
+            document.getElementById('cardInstName').textContent = instName;
+            document.getElementById('cardSchoolYear').textContent = schoolYear;
+
+            // Actualizar icono de género
+            const genderBadge = document.getElementById('cardGenderBadge');
+            if (gender === 'Masculino') {
+                genderBadge.innerHTML = '<i class="fa-solid fa-mars text-blue-600"></i>';
+            } else if (gender === 'Femenino') {
+                genderBadge.innerHTML = '<i class="fa-solid fa-venus text-pink-600"></i>';
+            } else {
+                genderBadge.innerHTML = '<i class="fa-solid fa-genderless text-purple-600"></i>';
+            }
+
+            // Actualizar QR Code dinámicamente
+            if (qrCodeInstance) {
+                const qrText = `NIE: ${nie} | Estudiante: ${name} | Esp: ${specialty} | Sec: ${section}`;
+                qrCodeInstance.clear();
+                qrCodeInstance.makeCode(qrText);
+            }
+        }
+
+        // Cambio de Temas de color
+        function changeTheme(themeName) {
+            const card = document.getElementById('printableArea');
+            card.classList.remove('theme-blue', 'theme-green', 'theme-red', 'theme-dark');
+            card.classList.add(themeName);
+            currentTheme = themeName;
+        }
+
+        // Carga y Vista previa de Foto del Estudiante
+        function handlePhotoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    customPhoto = e.target.result;
+                    document.getElementById('cardStudentPhoto').src = customPhoto;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Resetear foto
+        function resetPhoto() {
+            customPhoto = null;
+            document.getElementById('studentPhotoInput').value = '';
+            document.getElementById('cardStudentPhoto').src = 'https://placehold.co/150x180/e2e8f0/475569?text=FOTO';
+        }
+
+        // Carga y Vista previa de Logo Institucional
+        function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    customLogo = e.target.result;
+                    document.getElementById('cardLogoImg').src = customLogo;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Guardar Estudiante en LocalStorage
+        function saveStudent() {
+            const name = document.getElementById('studentName').value.trim();
+            const nie = document.getElementById('studentNIE').value.trim();
+            const section = document.getElementById('studentSection').value;
+            const specialty = document.getElementById('studentSpecialty').value;
+            const age = document.getElementById('studentAge').value;
+            const gender = document.getElementById('studentGender').value;
+
+            if (!name || !nie) {
+                alert('Por favor, complete al menos el Nombre y el NIE del estudiante.');
+                return;
+            }
+
+            const studentData = {
+                id: Date.now(),
+                name: name,
+                nie: nie,
+                section: section,
+                specialty: specialty,
+                age: age,
+                gender: gender,
+                photo: customPhoto || 'https://placehold.co/150x180/e2e8f0/475569?text=FOTO'
+            };
+
+            studentsList.push(studentData);
+            localStorage.setItem('edu_students', JSON.stringify(studentsList));
+            
+            renderStudentsTable();
+            showNotification('Estudiante guardado exitosamente');
+        }
+
+        // Cargar estudiantes de LocalStorage
+        function loadStoredStudents() {
+            const stored = localStorage.getItem('edu_students');
+            if (stored) {
+                try {
+                    studentsList = JSON.parse(stored);
+                    renderStudentsTable();
+                } catch (e) {
+                    studentsList = [];
+                }
+            }
+        }
+
+        // Renderizar tabla de estudiantes
+        function renderStudentsTable() {
+            const tbody = document.getElementById('studentTableBody');
+            const countBadge = document.getElementById('studentCountBadge');
+            
+            tbody.innerHTML = '';
+            countBadge.textContent = studentsList.length;
+
+            if (studentsList.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="px-3 py-4 text-center text-slate-400 italic">
+                            No hay estudiantes registrados aún.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            studentsList.forEach((student) => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-slate-100 hover:bg-slate-50 transition-colors';
+                row.innerHTML = `
+                    <td class="px-3 py-2.5 font-semibold text-slate-800">${escapeHtml(student.name)}</td>
+                    <td class="px-3 py-2.5">${escapeHtml(student.nie)}</td>
+                    <td class="px-3 py-2.5">${escapeHtml(student.section)}</td>
+                    <td class="px-3 py-2.5 text-right space-x-1">
+                        <button onclick="loadStudentToCard(${student.id})" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Ver / Cargar en Carnet">
+                            <i class="fa-solid fa-id-badge text-sm"></i>
+                        </button>
+                        <button onclick="deleteStudent(${student.id})" class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
+                            <i class="fa-solid fa-trash text-sm"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Cargar datos de estudiante desde la tabla al formulario/carnet
+        function loadStudentToCard(id) {
+            const student = studentsList.find(s => s.id === id);
+            if (student) {
+                document.getElementById('studentName').value = student.name;
+                document.getElementById('studentNIE').value = student.nie;
+                document.getElementById('studentSection').value = student.section;
+                document.getElementById('studentSpecialty').value = student.specialty;
+                document.getElementById('studentAge').value = student.age;
+                document.getElementById('studentGender').value = student.gender;
+
+                if (student.photo) {
+                    customPhoto = student.photo;
+                    document.getElementById('cardStudentPhoto').src = customPhoto;
+                }
+
+                updateCardPreview();
+                showNotification('Carnet actualizado con los datos seleccionados');
+            }
+        }
+
+        // Eliminar estudiante
+        function deleteStudent(id) {
+            studentsList = studentsList.filter(s => s.id !== id);
+            localStorage.setItem('edu_students', JSON.stringify(studentsList));
+            renderStudentsTable();
+            showNotification('Estudiante eliminado');
+        }
+
+        // Limpiar formulario
+        function resetForm() {
+            document.getElementById('studentForm').reset();
+            resetPhoto();
+            updateCardPreview();
+        }
+
+        // Imprimir carnet
+        function printCard() {
+            window.print();
+        }
+
+        // Helper para escapar HTML y prevenir XSS
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Notificación Toast Simple
+        function showNotification(message) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-4 right-4 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-xl shadow-xl z-50 transition-all transform translate-y-0 opacity-100 flex items-center gap-2';
+            toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> ${message}`;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(10px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+    </script>
+</body>
+</html>
